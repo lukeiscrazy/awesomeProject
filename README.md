@@ -50,7 +50,6 @@
 ├── controllers
 │   ├── userController.go     # 用户注册、登录相关功能
 │   ├── followController.go   # 用户关注、取消关注功能
-│   ├── getfollowingController.go   # 查看关注列表功能
 ├── database
 │   └── db.go                 # 数据库连接和初始化
 ├── models
@@ -123,11 +122,11 @@
    go test ./...
    ```
 2. 测试覆盖以下功能：
-   - 用户注册
-   - 用户登录
-   - 关注用户
-   - 取消关注
-   - 查看关注列表
+   - 用户注册 (`TestRegister`)
+   - 用户登录 (`TestLogin`)
+   - 关注用户 (`TestFollowUser`)
+   - 取消关注 (`TestUnfollowUser`)
+   - 查看关注列表 (`TestGetFollowingList`)
 
 ---
 
