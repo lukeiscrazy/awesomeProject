@@ -23,12 +23,14 @@ func setupRouter() *gin.Engine {
 func TestRegister(t *testing.T) {
 	database.Connect() // 连接数据库
 
+	// 确保数据库表已迁移
+	database.DB.AutoMigrate(&models.User{})
+
 	// 清理可能的测试残留数据
 	database.DB.Where("username = ?", "test_user").Unscoped().Delete(&models.User{})
 
 	r := setupRouter()
 
-	// 构造请求
 	payload := map[string]string{
 		"username": "test_user",
 		"password": "password123",
@@ -217,4 +219,97 @@ func TestUnfollowUser(t *testing.T) {
 	// 清理测试数据
 	database.DB.Unscoped().Delete(&user1)
 	database.DB.Unscoped().Delete(&user2)
+}
+
+func TestGetFollowingList(t *testing.T) {
+
+	database.Connect()
+	r := setupRouter()
+
+	// 清理可能的测试残留数据
+	database.DB.Where("username IN ?", []string{"follower", "followee1", "followee2"}).Unscoped().Delete(&models.User{})
+
+	// 创建测试用户
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password123"), bcrypt.DefaultCost)
+	user1 := models.User{Username: "follower", Password: string(hashedPassword)}
+	database.DB.Create(&user1)
+	user2 := models.User{Username: "followee1", Password: string(hashedPassword)}
+	database.DB.Create(&user2)
+	user3 := models.User{Username: "followee2", Password: string(hashedPassword)}
+	database.DB.Create(&user3)
+
+	// 模拟登录获取 token
+	loginPayload := map[string]string{
+		"username": "follower",
+		"password": "password123",
+	}
+	loginJSON, _ := json.Marshal(loginPayload)
+
+	req, _ := http.NewRequest("POST", "/api/login", bytes.NewBuffer(loginJSON))
+	req.Header.Set("Content-Type", "application/json")
+
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Login failed with status: %d", w.Code)
+	}
+
+	var loginResponse map[string]string
+	json.Unmarshal(w.Body.Bytes(), &loginResponse)
+	token := loginResponse["token"]
+
+	// 模拟关注多个用户
+	followPayload := map[string]uint{
+		"followee_id": user2.ID,
+	}
+	followJSON, _ := json.Marshal(followPayload)
+
+	req, _ = http.NewRequest("POST", "/api/user/follow", bytes.NewBuffer(followJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Follow user1 failed with status: %d", w.Code)
+	}
+
+	followPayload["followee_id"] = user3.ID
+	followJSON, _ = json.Marshal(followPayload)
+
+	req, _ = http.NewRequest("POST", "/api/user/follow", bytes.NewBuffer(followJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Follow user2 failed with status: %d", w.Code)
+	}
+
+	// 测试获取关注列表
+	req, _ = http.NewRequest("GET", "/api/user/following", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+
+	w = httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected HTTP status 200, got %d", w.Code)
+	}
+
+	var followingResponse []map[string]interface{}
+	json.Unmarshal(w.Body.Bytes(), &followingResponse)
+
+	if len(followingResponse) != 2 {
+		t.Errorf("Expected 2 users in following list, got %d", len(followingResponse))
+	}
+
+	// 清理测试数据
+	database.DB.Unscoped().Delete(&user1)
+	database.DB.Unscoped().Delete(&user2)
+	database.DB.Unscoped().Delete(&user3)
 }
