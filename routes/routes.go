@@ -16,6 +16,7 @@ func SetupRoutes(r *gin.Engine) {
 		{
 			userGroup.POST("/follow", controllers.FollowUser)
 			userGroup.DELETE("/unfollow", controllers.UnfollowUser)
+			userGroup.GET("/following", controllers.GetFollowingList)
 		}
 	}
 }
