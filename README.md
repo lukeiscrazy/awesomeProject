@@ -50,6 +50,7 @@
 ├── controllers
 │   ├── userController.go     # 用户注册、登录相关功能
 │   ├── followController.go   # 用户关注、取消关注功能
+│   ├── getfollowingController.go   # 查看关注列表功能
 ├── database
 │   └── db.go                 # 数据库连接和初始化
 ├── models
