@@ -1,7 +1,7 @@
-# Gin + Gorm + PostgreSQL 实现关注/取消关注 RESTful 服务
+# Gin + Gorm + PostgreSQL 实现关注/取消关注 REST 服务
 
 ## 项目简介
-本项目使用 Go 的 Gin 框架、Gorm ORM 和 PostgreSQL 数据库实现了一个基础的用户关注和取消关注的 RESTful 服务。包括以下功能：
+本项目使用 Go 的 Gin 框架、Gorm ORM 和 PostgreSQL 数据库实现了一个基础的用户关注和取消关注的 REST 服务。包括以下功能：
 
 1. 用户注册
 2. 用户登录
