@@ -1,180 +1,139 @@
-# Gin + Gorm + PostgreSQL 实现关注/取消关注 REST 服务
+# 用户关注/取消关注 REST 服务
 
 ## 项目简介
-本项目使用 Go 的 Gin 框架、Gorm ORM 和 PostgreSQL 数据库实现了一个基础的用户关注和取消关注的 REST 服务。包括以下功能：
-
-1. 用户注册
-2. 用户登录
-3. 关注其他用户
-4. 取消关注
+本项目是一个基于 Gin、Gorm 和 PostgreSQL 实现的后端 REST 服务，提供用户注册、登录、关注其他用户、取消关注以及查看关注列表的功能。
 
 ---
 
-## 环境要求
+## 功能列表
+1. **用户注册**
+   - 路由：`POST /api/register`
+   - 描述：用户可以通过用户名和密码注册账号。
 
-- Go 1.19 或以上版本
+2. **用户登录**
+   - 路由：`POST /api/login`
+   - 描述：用户可以通过用户名和密码登录系统，成功后返回 JWT Token。
+
+3. **关注用户**
+   - 路由：`POST /api/user/follow`
+   - 描述：已登录用户可以关注其他用户。
+
+4. **取消关注用户**
+   - 路由：`DELETE /api/user/unfollow`
+   - 描述：已登录用户可以取消关注其他用户。
+
+5. **查看关注列表**
+   - 路由：`GET /api/user/following`
+   - 描述：已登录用户可以查看自己关注的所有用户列表。
+
+---
+
+## 环境配置
+
+### 必备条件
+- Go 1.19 或更高版本
 - PostgreSQL 数据库
+- 配置以下依赖包：
+  ```bash
+  go get github.com/gin-gonic/gin
+  go get gorm.io/gorm
+  go get gorm.io/driver/postgres
+  go get github.com/dgrijalva/jwt-go
+  go get golang.org/x/crypto
+  ```
 
 ---
 
 ## 项目结构
-
 ```
 .
-├── main.go               // 主程序入口
-├── controllers           // 控制器目录
-│   ├── userController.go // 用户相关功能
-│   ├── followController.go // 关注/取消关注功能
-├── database              // 数据库配置
-│   └── db.go
-├── models                // 数据模型
-│   ├── user.go           // 用户模型
-│   ├── follow.go         // 关注模型
-├── routes                // 路由配置
-│   └── routes.go
-├── middleware            // 中间件
-│   └── auth.go           // 认证中间件
-├── go.mod                // Go 模块依赖
-├── go.sum                // 依赖锁文件
-├── main_test.go          // 测试代码
+├── controllers
+│   ├── userController.go     # 用户注册、登录相关功能
+│   ├── followController.go   # 用户关注、取消关注功能
+├── database
+│   └── db.go                 # 数据库连接和初始化
+├── models
+│   ├── user.go               # 用户模型
+│   ├── follow.go             # 关注模型
+├── routes
+│   └── routes.go             # 路由定义
+├── middleware
+│   └── auth.go               # JWT 中间件
+├── main.go                   # 主程序入口
+├── main_test.go              # 测试用例
+├── go.mod                    # Go 模块配置
+├── go.sum                    # Go 依赖锁定
 ```
 
 ---
 
-## 数据库配置
+## 使用方法
 
-在 `database/db.go` 中设置 PostgreSQL 的连接字符串：
-```go
-var dsn = "host=localhost user=your_user password=your_password dbname=your_db port=5432 sslmode=disable"
-```
+### 数据库配置
+1. 创建 PostgreSQL 数据库。
+   ```sql
+   CREATE DATABASE your_db;
+   ```
+2. 更新 `database/db.go` 文件中的数据库连接配置。
+   ```go
+   dsn := "host=localhost user=your_user password=your_password dbname=your_db port=5432 sslmode=disable"
+   ```
 
-运行数据库迁移：
-```go
-database.DB.AutoMigrate(&models.User{}, &models.Follow{})
-```
+### 运行项目
+1. 初始化数据库并启动服务：
+   ```bash
+   go run main.go
+   ```
+2. 服务将运行在 `http://localhost:8080`。
 
----
+### API 测试
+推荐使用 Postman 或 curl 工具测试以下 API：
 
-## 功能说明
+1. 注册用户：
+   ```bash
+   curl -X POST http://localhost:8080/api/register -H "Content-Type: application/json" -d '{"username": "test_user", "password": "password123"}'
+   ```
 
-### 1. 用户注册
-**接口：**
-```
-POST /api/register
-```
-**请求体：**
-```json
-{
-  "username": "test_user",
-  "password": "password123"
-}
-```
-**响应：**
-```json
-{
-  "message": "User registered successfully!"
-}
-```
+2. 用户登录：
+   ```bash
+   curl -X POST http://localhost:8080/api/login -H "Content-Type: application/json" -d '{"username": "test_user", "password": "password123"}'
+   ```
 
-### 2. 用户登录
-**接口：**
-```
-POST /api/login
-```
-**请求体：**
-```json
-{
-  "username": "test_user",
-  "password": "password123"
-}
-```
-**响应：**
-```json
-{
-  "token": "Bearer <your_token>"
-}
-```
+3. 关注用户：
+   ```bash
+   curl -X POST http://localhost:8080/api/user/follow -H "Authorization: Bearer <your_token>" -H "Content-Type: application/json" -d '{"followee_id": 2}'
+   ```
 
-### 3. 关注用户
-**接口：**
-```
-POST /api/user/follow
-```
-**请求体：**
-```json
-{
-  "followee_id": 2
-}
-```
-**响应：**
-```json
-{
-  "message": "Followed user successfully!"
-}
-```
+4. 取消关注：
+   ```bash
+   curl -X DELETE http://localhost:8080/api/user/unfollow -H "Authorization: Bearer <your_token>" -H "Content-Type: application/json" -d '{"followee_id": 2}'
+   ```
 
-### 4. 取消关注
-**接口：**
-```
-DELETE /api/user/unfollow
-```
-**请求体：**
-```json
-{
-  "followee_id": 2
-}
-```
-**响应：**
-```json
-{
-  "message": "Unfollowed user successfully!"
-}
-```
+5. 查看关注列表：
+   ```bash
+   curl -X GET http://localhost:8080/api/user/following -H "Authorization: Bearer <your_token>"
+   ```
 
 ---
 
-## 测试说明
-
-项目使用 `httptest` 进行单元测试，测试代码位于 `main_test.go` 文件中。
-
-运行测试命令：
-```bash
-go test ./...
-```
-
-测试覆盖以下功能：
-1. 用户注册 (`TestRegister`)
-2. 用户登录 (`TestLogin`)
-3. 关注用户 (`TestFollowUser`)
-4. 取消关注 (`TestUnfollowUser`)
+## 测试
+1. 运行测试用例：
+   ```bash
+   go test ./...
+   ```
+2. 测试覆盖以下功能：
+   - 用户注册
+   - 用户登录
+   - 关注用户
+   - 取消关注
+   - 查看关注列表
 
 ---
 
-## 项目启动
-
-1. 启动 PostgreSQL 数据库。
-2. 配置 `database/db.go` 文件中的数据库连接信息。
-3. 运行以下命令启动服务：
-```bash
-go run main.go
-```
-4. 服务默认运行在 `http://localhost:8080`。
-
----
-
-## 常见问题
-
-### 1. 数据库连接失败
-- 检查 `dsn` 配置是否正确。
-- 确保 PostgreSQL 服务正在运行。
-
-### 2. 注册或登录时报 `500` 错误
-- 检查数据库是否已迁移。
-- 确保用户名唯一性未被破坏。
-
----
-
-## 作者
-- 作者: 翁晓逸
-- 日期: 2024 年 12 月
+## 注意事项
+1. 确保 `username` 字段唯一。
+2. 在生产环境中，将 JWT 密钥替换为更加安全的密钥，并运行服务时设置为 `release` 模式。
+   ```bash
+   export GIN_MODE=release
+   ```
 
